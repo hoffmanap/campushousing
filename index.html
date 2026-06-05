@@ -1,0 +1,24 @@
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://unpkg.com/@turf/turf/turf.min.js"></script>
+
+<div id="map" style="height: 500px;"></div>
+
+<script>
+  // 1. Initialize the map
+  var map = L.map('map').setView([31.77, -106.5], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+  // 2. Load your GeoJSON data (assuming variable 'campusData')
+  var campusLayer = L.geoJSON(campusData).addTo(map);
+
+  // 3. Create 1/2 mile buffer for each polygon
+  campusData.features.forEach(function(feature) {
+    var buffered = turf.buffer(feature, 0.5, { units: 'miles' });
+    
+    // Add buffer to map
+    L.geoJSON(buffered, {
+      style: { color: 'red', fillOpacity: 0.2 }
+    }).addTo(map);
+  });
+</script>

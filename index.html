@@ -1,24 +1,42 @@
-<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<script src="https://unpkg.com/@turf/turf/turf.min.js"></script>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>El Paso Campus Housing Zones</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        #map { height: 100vh; width: 100%; }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
 
-<div id="map" style="height: 500px;"></div>
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/@turf/turf/turf.min.js"></script>
+    <script>
+        // 1. Initialize Map with Grayscale Style
+        var map = L.map('map').setView([31.77, -106.5], 14);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; CartoDB'
+        }).addTo(map);
 
-<script>
-  // 1. Initialize the map
-  var map = L.map('map').setView([31.77, -106.5], 13);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+        // 2. Fetch and Load GeoJSON
+        fetch('campuses.geojson')
+            .then(res => res.json())
+            .then(data => {
+                // Buffer Style
+                var bufferStyle = { color: '#3498db', fillOpacity: 0.2, weight: 1 };
+                // Campus Style
+                var campusStyle = { color: '#2c3e50', fillColor: '#34495e', fillOpacity: 0.8, weight: 2 };
 
-  // 2. Load your GeoJSON data (assuming variable 'campusData')
-  var campusLayer = L.geoJSON(campusData).addTo(map);
-
-  // 3. Create 1/2 mile buffer for each polygon
-  campusData.features.forEach(function(feature) {
-    var buffered = turf.buffer(feature, 0.5, { units: 'miles' });
-    
-    // Add buffer to map
-    L.geoJSON(buffered, {
-      style: { color: 'red', fillOpacity: 0.2 }
-    }).addTo(map);
-  });
-</script>
+                data.features.forEach(feature => {
+                    // Create and add buffer
+                    var buffered = turf.buffer(feature, 0.5, { units: 'miles' });
+                    L.geoJSON(buffered, { style: bufferStyle }).addTo(map).bindPopup("1/2 Mile Zone");
+                    
+                    // Add original campus
+                    L.geoJSON(feature, { style: campusStyle }).addTo(map).bindPopup(feature.properties.Name);
+                });
+            });
+    </script>
+</body>
+</html>

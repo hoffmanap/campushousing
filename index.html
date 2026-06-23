@@ -29,9 +29,9 @@
     <div class="w-96 bg-gray-900 border-r border-gray-800 p-6 flex flex-col justify-between z-[1000] shadow-2xl overflow-y-auto h-full">
         <div>
             <h1 class="text-xl font-bold tracking-tight text-amber-500 mb-1">Campus Housing Model</h1>
-            <p class="text-xs text-gray-400 mb-6">Simulate municipal policy leverage options under Chapter 218 constraints.</p>
+            <p class="text-xs text-gray-400 mb-4">Simulate municipal policy leverage options under Chapter 218 constraints.</p>
 
-            <div class="space-y-6">
+            <div class="space-y-4">
                 <div>
                     <div class="flex justify-between text-sm mb-1">
                         <label class="font-medium text-gray-200">Permitted Height</label>
@@ -39,7 +39,6 @@
                     </div>
                     <input id="slider-stories" type="range" min="4" max="12" step="1" value="4" 
                         class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-amber-500" />
-                    <p class="text-[10px] text-gray-500 mt-1">Adjust maximum story density across active redevelopment sites.</p>
                 </div>
 
                 <div>
@@ -49,7 +48,6 @@
                     </div>
                     <input id="slider-far" type="range" min="0.1" max="0.5" step="0.05" value="0.3" 
                         class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-amber-500" />
-                    <p class="text-[10px] text-gray-500 mt-1">Simulate redevelopment probability via current built-intensity limits.</p>
                 </div>
 
                 <div>
@@ -59,11 +57,39 @@
                     </div>
                     <input id="slider-setback" type="range" min="0" max="1" step="1" value="0" 
                         class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-amber-500" />
-                    <p class="text-[10px] text-gray-500 mt-1">Toggle urban zero-lot-line models to expand buildable space.</p>
+                </div>
+
+                <div>
+                    <div class="flex justify-between text-sm mb-1">
+                        <label class="font-medium text-gray-200">Max Units Per Acre</label>
+                        <span id="units-acre-val" class="text-amber-400 font-semibold">No Cap</span>
+                    </div>
+                    <input id="slider-units-acre" type="range" min="20" max="150" step="5" value="150" 
+                        class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-amber-500" />
+                </div>
+
+                <div>
+                    <div class="flex justify-between text-sm mb-1">
+                        <label class="font-medium text-gray-200">Max Lot Coverage</label>
+                        <span id="coverage-val" class="text-amber-400 font-semibold">80%</span>
+                    </div>
+                    <input id="slider-coverage" type="range" min="30" max="100" step="5" value="80" 
+                        class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-amber-500" />
+                </div>
+
+                <div class="flex items-center justify-between p-3 bg-gray-800/40 rounded-lg border border-gray-800">
+                    <div>
+                        <label class="text-sm font-medium text-gray-200 block">Enforce Private Covenants</label>
+                        <span class="text-[10px] text-gray-500">Activates legal covenants overlays</span>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input id="toggle-deed" type="checkbox" class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-300 after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                    </label>
                 </div>
             </div>
 
-            <div class="mt-8 pt-6 border-t border-gray-800">
+            <div class="mt-4 pt-4 border-t border-gray-800">
                 <div class="bg-gray-800/50 p-4 rounded-lg border border-gray-800">
                     <div class="text-xs text-gray-400 font-medium uppercase tracking-wider">Simulated Net Housing Yield</div>
                     <div id="kpi-units" class="text-3xl font-extrabold text-amber-500 mt-1">0</div>
@@ -72,7 +98,7 @@
             </div>
         </div>
 
-        <div class="pt-6 border-t border-gray-800 space-y-4">
+        <div class="pt-4 border-t border-gray-800 space-y-3">
             <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400">Target Housing Requirements</h3>
             
             <div>
@@ -110,26 +136,32 @@
                 <div class="w-4 h-4 bg-blue-900 rounded bg-opacity-40 border border-blue-600"></div>
                 <span>Stable Structural Zone (No Change)</span>
             </div>
-            <p class="text-[9px] text-gray-500 italic max-w-[210px] pt-1">Hover cursor over individual parcel boundaries to review local zoning definitions and computed net unit potential.</p>
+            <div class="flex items-center space-x-2">
+                <div class="w-4 h-4 bg-red-900 rounded bg-opacity-60 border border-red-600"></div>
+                <span>Blocked by Private Covenant Overlay</span>
+            </div>
         </div>
     </div>
 
     <script>
-        // TARGET CAPACITY METRICS
         const TARGETS = { UTEP: 26297, EPCC: 25567 };
 
-        // DOM ELEMENTS REFERENCE
+        // DOM REFERENCES
         const elStories = document.getElementById('slider-stories');
         const elFar = document.getElementById('slider-far');
         const elSetback = document.getElementById('slider-setback');
+        const elUnitsAcre = document.getElementById('slider-units-acre');
+        const elCoverage = document.getElementById('slider-coverage');
+        const elDeedToggle = document.getElementById('toggle-deed');
 
         const valStories = document.getElementById('stories-val');
         const valFar = document.getElementById('far-val');
         const valSetback = document.getElementById('setback-val');
+        const valUnitsAcre = document.getElementById('units-acre-val');
+        const valCoverage = document.getElementById('coverage-val');
 
         const kpiUnits = document.getElementById('kpi-units');
         const kpiParcels = document.getElementById('kpi-parcels');
-
         const utepLabel = document.getElementById('utep-label');
         const utepBar = document.getElementById('utep-bar');
         const epccLabel = document.getElementById('epcc-label');
@@ -137,132 +169,152 @@
 
         let map, geojsonLayer, rawGeojsonData = null;
 
-        // INITIALIZE MAP LAYOUT
         function initMap() {
             map = L.map('map', {
                 center: [31.777, -106.485],
                 zoom: 13,
                 zoomControl: false
             });
-
             L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-            // Load Tokenless CartoDB Dark Matter Base Tiles
             L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
                 attribution: '&copy; OpenStreetMap &copy; CARTO',
                 subdomains: 'abcd',
                 maxZoom: 20
             }).addTo(map);
 
-            // Fetch optimized map dataset
             fetch('campus_zone_parcels.geojson')
                 .then(res => res.json())
                 .then(data => {
                     rawGeojsonData = data;
-                    runSimulation(); // Fire initial capacity layout render pass
+                    runSimulation();
                 })
-                .catch(err => console.error("Error fetching map file assets:", err));
+                .catch(err => console.error("Error fetching map data:", err));
         }
 
-        // RE-CALCULATION ENGINE LOOP
         function runSimulation() {
             if (!rawGeojsonData) return;
 
-            // Purge active canvas geometries to prevent resource memory leaks
-            if (geojsonLayer) {
-                map.removeLayer(geojsonLayer);
-            }
+            if (geojsonLayer) { map.removeLayer(geojsonLayer); }
 
-            // Read live primitive value state conditions from form elements with explicit parsing
             const stories = parseInt(elStories.value, 10);
             const farThreshold = parseFloat(elFar.value);
-            const setbackLever = parseInt(elSetback.value, 10) === 1 ? 0.2 : 1.0; // Fixed type evaluation check
+            const setbackLever = parseInt(elSetback.value, 10) === 1 ? 0.2 : 1.0;
+            const maxUnitsPerAcre = parseInt(elUnitsAcre.value, 10);
+            const maxCoveragePct = parseInt(elCoverage.value, 10) / 100;
+            const enforceCovenants = elDeedToggle.checked;
 
-            // Update user interface slider labels
             valStories.innerText = stories + " Stories";
             valFar.innerText = "FAR < " + farThreshold.toFixed(2);
             valSetback.innerText = setbackLever === 0.2 ? 'Zero-Lot Line' : 'Standard Baseline';
+            valUnitsAcre.innerText = maxUnitsPerAcre === 150 ? "No Cap" : maxUnitsPerAcre + " Units/Acre";
+            valCoverage.innerText = (maxCoveragePct * 100) + "%";
 
             let totalNetUnits = 0;
             let activeSoftSites = 0;
 
-            // Geometry styling function applied frame-by-frame
             function styleFeature(feature) {
                 const props = feature.properties;
                 const existingFar = parseFloat(props.EXISTING_FAR || 0);
-                const isSoftSite = existingFar < farThreshold;
+                
+                // Determine Covenant Block Status
+                const hasCovenant = props.COVENANT === 'Y';
+                const allowsMfByCovenant = String(props.allow_mf) !== 'false';
+                
+                // Absolute structural blocking rule if covenants toggle is checked
+                const isBlockedByCovenant = enforceCovenants && hasCovenant && !allowsMfByCovenant;
+                const isSoftSite = (existingFar < farThreshold) && !isBlockedByCovenant;
+
+                if (isBlockedByCovenant) {
+                    feature.properties.runtime_net_units = 0;
+                    feature.properties.runtime_status = "Blocked By Private Restriction";
+                    return {
+                        fillColor: '#ef4444', weight: 1, opacity: 0.6, color: '#b91c1c', fillOpacity: 0.45
+                    };
+                }
 
                 if (isSoftSite) {
                     activeSoftSites++;
                     
-                    // Run core capacity math modeling matching Python engine setup
-                    const buildableFootprint = parseFloat(props.buildable_footprint_sqft || 0);
-                    const modFootprint = buildableFootprint * (2.0 - setbackLever);
+                    const landAcres = parseFloat(props.LAND_ACRES || 0);
+                    const parcelSqft = landAcres * 43560;
+                    
+                    const baseBuildableFootprint = parseFloat(props.buildable_footprint_sqft || 0);
+                    let modFootprint = baseBuildableFootprint * (2.0 - setbackLever);
+                    
+                    // APPLY COVERAGE CAP
+                    const maxAllowedFootprintByCoverage = parcelSqft * maxCoveragePct;
+                    if (modFootprint > maxAllowedFootprintByCoverage) {
+                        modFootprint = maxAllowedFootprintByCoverage;
+                    }
+
                     const totalSimBuildableSqft = modFootprint * stories;
                     const leasableSqft = totalSimBuildableSqft * 0.85;
-                    const grossUnits = Math.floor(leasableSqft / 800);
+                    let calculatedGrossUnits = Math.floor(leasableSqft / 800);
                     
-                    const landAcres = parseFloat(props.LAND_ACRES || 0);
-                    const existingUnitsEst = Math.floor((existingFar * landAcres * 43560) / 800);
+                    // APPLY UNITS PER ACRE CAP
+                    if (maxUnitsPerAcre < 150) {
+                        const maxAllowedUnitsByDensity = Math.floor(landAcres * maxUnitsPerAcre);
+                        if (calculatedGrossUnits > maxAllowedUnitsByDensity) {
+                            calculatedGrossUnits = maxAllowedUnitsByDensity;
+                        }
+                    }
+
+                    // COVENANT MAX_UNITS OVERRIDE RULE
+                    const explicitCovMaxUnits = parseInt(props.max_units, 10);
+                    if (enforceCovenants && hasCovenant && !isNaN(explicitCovMaxUnits) && explicitCovMaxUnits > 0) {
+                        if (calculatedGrossUnits > explicitCovMaxUnits) {
+                            calculatedGrossUnits = explicitCovMaxUnits;
+                        }
+                    }
                     
-                    const netUnits = Math.max(0, grossUnits - existingUnitsEst);
+                    const existingUnitsEst = Math.floor((existingFar * parcelSqft) / 800);
+                    const netUnits = Math.max(0, calculatedGrossUnits - existingUnitsEst);
                     totalNetUnits += netUnits;
 
                     feature.properties.runtime_net_units = netUnits;
+                    feature.properties.runtime_status = "Developable Soft Site";
 
                     return {
-                        fillColor: '#f59e0b',
-                        weight: 1,
-                        opacity: 0.8,
-                        color: '#d97706',
-                        fillOpacity: 0.6
+                        fillColor: '#f59e0b', weight: 1, opacity: 0.8, color: '#d97706', fillOpacity: 0.6
                     };
                 } else {
                     feature.properties.runtime_net_units = 0;
+                    feature.properties.runtime_status = "Stable Built Zone";
                     return {
-                        fillColor: '#1e3a8a',
-                        weight: 0.5,
-                        opacity: 0.4,
-                        color: '#2563eb',
-                        fillOpacity: 0.15
+                        fillColor: '#1e3a8a', weight: 0.5, opacity: 0.4, color: '#2563eb', fillOpacity: 0.15
                     };
                 }
             }
 
-            // Tooltip mapping rule block
             function onEachFeature(feature, layer) {
                 layer.on({
                     mouseover: (e) => {
                         const currentLayer = e.target;
                         currentLayer.setStyle({ weight: 2, color: '#ffffff', fillOpacity: 0.8 });
-                        
                         const props = feature.properties;
                         const netUnits = props.runtime_net_units || 0;
-                        const existingFar = parseFloat(props.EXISTING_FAR || 0);
+                        const status = props.runtime_status || 'Stable';
                         
                         currentLayer.bindTooltip([
                             "<strong>Zoning District:</strong> " + (props.ZONELABEL || 'Unknown') + "<br/>",
-                            "<strong>Existing Base FAR:</strong> " + existingFar.toFixed(2) + "<br/>",
+                            "<strong>Status:</strong> " + status + "<br/>",
+                            "<strong>Existing Base FAR:</strong> " + parseFloat(props.EXISTING_FAR || 0).toFixed(2) + "<br/>",
                             "<strong>Simulated Net Units:</strong> " + netUnits.toLocaleString()
                         ].join(""), { className: 'leaflet-tooltip-custom', sticky: true }).openTooltip();
                     },
-                    mouseout: (e) => {
-                        geojsonLayer.resetStyle(e.target);
-                    }
+                    mouseout: (e) => { geojsonLayer.resetStyle(e.target); }
                 });
             }
 
-            // Build fresh active canvas collection
             geojsonLayer = L.geoJSON(rawGeojsonData, {
                 style: styleFeature,
                 onEachFeature: onEachFeature
             }).addTo(map);
 
-            // Refresh text KPI values
             kpiUnits.innerText = totalNetUnits.toLocaleString();
             kpiParcels.innerText = "Net units generated across " + activeSoftSites.toLocaleString() + " active lots.";
 
-            // Adjust target enrollment bar scales
             const utepPct = Math.min(100, (totalNetUnits / TARGETS.UTEP) * 100);
             const epccPct = Math.min(100, (totalNetUnits / TARGETS.EPCC) * 100);
 
@@ -273,12 +325,13 @@
             epccBar.style.width = epccPct + "%";
         }
 
-        // ATTACH REAL-TIME SLIDER EVENT LISTENERS
         elStories.addEventListener('input', runSimulation);
         elFar.addEventListener('input', runSimulation);
         elSetback.addEventListener('input', runSimulation);
+        elUnitsAcre.addEventListener('input', runSimulation);
+        elCoverage.addEventListener('input', runSimulation);
+        elDeedToggle.addEventListener('change', runSimulation);
 
-        // MAP LIFECYCLE INITIATION
         window.onload = initMap;
     </script>
 </body>

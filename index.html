@@ -16,7 +16,6 @@
     <style>
         body, html, #root { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; }
         #map { height: 100%; width: 100%; background: #111827; }
-        /* Style adjustments for custom Leaflet tooltips */
         .leaflet-tooltip-custom {
             background: #1f2937 !important;
             color: #fff !important;
@@ -31,8 +30,6 @@
     <div id="root" class="h-full w-full relative"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
-
         // TARGET ENROLLMENT BENCHMARKS
         const TARGETS = {
             UTEP: 26297,
@@ -40,20 +37,21 @@
         };
 
         function Dashboard() {
-            const mapRef = useRef(null);
-            const geoJsonLayerRef = useRef(null);
-            const [geoJsonData, setGeoJsonData] = useState(null);
+            const mapRef = React.useRef(null);
+            const geoJsonLayerRef = React.useRef(null);
+            
+            const [geoJsonData, setGeoJsonData] = React.useState(null);
 
             // SIMULATION LEVERS (REACT STATE)
-            const [stories, setStories] = useState(4); // Permitted Building Height (Stories)
-            const [farThreshold, setFarThreshold] = useState(0.3); // Market Reutilization Cutoff
-            const [setbackLever, setSetbackLever] = useState(1.0); // 1.0 = Standard setbacks, 0.2 = Zero Lot Line
+            const [stories, setStories] = React.useState(4); // Permitted Building Height (Stories)
+            const [farThreshold, setFarThreshold] = React.useState(0.3); // Market Reutilization Cutoff
+            const [setbackLever, setSetbackLever] = React.useState(1.0); // 1.0 = Standard setbacks, 0.2 = Zero Lot Line
 
             // OUTPUT METRICS
-            const [stats, setStats] = useState({ totalNetUnits: 0, softSitesCount: 0 });
+            const [stats, setStats] = React.useState({ totalNetUnits: 0, softSitesCount: 0 });
 
             // 1. Fetch data file on load
-            useEffect(() => {
+            React.useEffect(() => {
                 fetch('campus_zone_parcels.geojson')
                     .then(res => res.json())
                     .then(data => setGeoJsonData(data))
@@ -61,7 +59,7 @@
             }, []);
 
             // 2. Initialize Leaflet Map
-            useEffect(() => {
+            React.useEffect(() => {
                 if (mapRef.current) return;
 
                 // Center map coordinates focused on El Paso's core university zone
@@ -83,7 +81,7 @@
             }, []);
 
             // 3. Dynamic Calculation & Map Update Engine
-            useEffect(() => {
+            React.useEffect(() => {
                 if (!geoJsonData || !mapRef.current) return;
 
                 // Remove existing layer if it exists to redraw fresh updates on slider change
@@ -143,20 +141,22 @@
                 function onEachFeature(feature, layer) {
                     layer.on({
                         mouseover: (e) => {
-                            const layer = e.target;
-                            layer.setStyle({ weight: 2, color: '#ffffff', fillOpacity: 0.85 });
+                            const currentLayer = e.target;
+                            currentLayer.setStyle({ weight: 2, color: '#ffffff', fillOpacity: 0.85 });
                             
                             const props = feature.properties;
                             const netUnits = props.runtime_net_units || 0;
                             
-                            layer.bindTooltip(`
-                                <strong>Zoning:</strong> ${props.ZONELABEL}<br/>
-                                <strong>Existing FAR:</strong> ${parseFloat(props.EXISTING_FAR).toFixed(2)}<br/>
-                                <strong>Simulated Net Units:</strong> ${netUnits}
+                            currentLayer.bindTooltip(`
+                                <strong>Zoning District:</strong> ${props.ZONELABEL || 'Unknown'}<br/>
+                                <strong>Existing Base FAR:</strong> ${parseFloat(props.EXISTING_FAR || 0).toFixed(2)}<br/>
+                                <strong>Simulated Net Units:</strong> ${netUnits.toLocaleString()}
                             `, { className: 'leaflet-tooltip-custom', sticky: true }).openTooltip();
                         },
                         mouseout: (e) => {
-                            geoJsonLayerRef.current.resetStyle(e.target);
+                            if (geoJsonLayerRef.current) {
+                                geoJsonLayerRef.current.resetStyle(e.target);
+                            }
                         }
                     });
                 }
@@ -180,86 +180,86 @@
             const epccProgress = Math.min(100, (stats.totalNetUnits / TARGETS.EPCC) * 100);
 
             return (
-                <div class="flex h-full w-full">
+                <div className="flex h-full w-full">
                     {/* LEFT CONTROL PANEL */}
-                    <div class="w-96 bg-gray-900 border-r border-gray-800 p-6 flex flex-col justify-between z-[1000] shadow-2xl overflow-y-auto">
+                    <div className="w-96 bg-gray-900 border-r border-gray-800 p-6 flex flex-col justify-between z-[1000] shadow-2xl overflow-y-auto">
                         <div>
-                            <h1 class="text-xl font-bold tracking-tight text-amber-500 mb-1">Campus Housing Model</h1>
-                            <p class="text-xs text-gray-400 mb-6">Simulate open-source zoning layouts for local college zones.</p>
+                            <h1 className="text-xl font-bold tracking-tight text-amber-500 mb-1">Campus Housing Model</h1>
+                            <p className="text-xs text-gray-400 mb-6">Simulate open-source zoning layouts for local college zones.</p>
 
-                            <div class="space-y-6">
+                            <div className="space-y-6">
                                 <div>
-                                    <div class="flex justify-between text-sm mb-1">
-                                        <label class="font-medium">Permitted Height</label>
-                                        <span class="text-amber-400 font-semibold">{stories} Stories</span>
+                                    <div className="flex justify-between text-sm mb-1">
+                                        <label className="font-medium">Permitted Height</label>
+                                        <span className="text-amber-400 font-semibold">{stories} Stories</span>
                                     </div>
                                     <input type="range" min="4" max="12" step="1" value={stories} 
                                         onChange={(e) => setStories(parseInt(e.target.value))}
-                                        class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-amber-500" />
+                                        className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-amber-500" />
                                     <p class="text-[10px] text-gray-500 mt-1">Adjust maximum story density across active parcels.</p>
                                 </div>
 
                                 <div>
                                     <div class="flex justify-between text-sm mb-1">
-                                        <label class="font-medium">Soft-Site Market Filter</label>
-                                        <span class="text-amber-400 font-semibold">FAR &lt; {farThreshold}</span>
+                                        <label className="font-medium">Soft-Site Market Filter</label>
+                                        <span className="text-amber-400 font-semibold">FAR &lt; {farThreshold}</span>
                                     </div>
                                     <input type="range" min="0.1" max="0.5" step="0.05" value={farThreshold} 
                                         onChange={(e) => setFarThreshold(parseFloat(e.target.value))}
-                                        class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-amber-500" />
+                                        className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-amber-500" />
                                     <p class="text-[10px] text-gray-500 mt-1">Capture properties with low layout efficiency ratios.</p>
                                 </div>
 
                                 <div>
                                     <div class="flex justify-between text-sm mb-1">
-                                        <label class="font-medium">Setback Framework Mode</label>
-                                        <span class="text-amber-400 font-semibold">{setbackLever === 0.2 ? 'Zero-Lot Line' : 'Standard Baseline'}</span>
+                                        <label className="font-medium">Setback Framework Mode</label>
+                                        <span className="text-amber-400 font-semibold">{setbackLever === 0.2 ? 'Zero-Lot Line' : 'Standard Baseline'}</span>
                                     </div>
                                     <input type="range" min="0.2" max="1.0" step="0.8" value={setbackLever} 
                                         onChange={(e) => setSetbackLever(parseFloat(e.target.value))}
-                                        class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-amber-500" />
+                                        className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-amber-500" />
                                     <p class="text-[10px] text-gray-500 mt-1">Toggle urban zero-lot-line models to expand buildable space.</p>
                                 </div>
                             </div>
 
-                            <div class="mt-8 pt-6 border-t border-gray-800 space-y-4">
-                                <div class="bg-gray-800/50 p-4 rounded-lg border border-gray-800">
-                                    <div class="text-xs text-gray-400 font-medium uppercase tracking-wider">Simulated Net Housing Yield</div>
-                                    <div class="text-3xl font-extrabold text-amber-500 mt-1">{stats.totalNetUnits.toLocaleString()}</div>
+                            <div className="mt-8 pt-6 border-t border-gray-800 space-y-4">
+                                <div className="bg-gray-800/50 p-4 rounded-lg border border-gray-800">
+                                    <div className="text-xs text-gray-400 font-medium uppercase tracking-wider">Simulated Net Housing Yield</div>
+                                    <div className="text-3xl font-extrabold text-amber-500 mt-1">{stats.totalNetUnits.toLocaleString()}</div>
                                     <div class="text-[10px] text-gray-400 mt-1">Net units generated on {stats.softSitesCount} active lots.</div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="pt-6 border-t border-gray-800 space-y-4">
-                            <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400">Target Housing Requirements</h3>
+                        <div className="pt-6 border-t border-gray-800 space-y-4">
+                            <h3 className="text-xs font-bold uppercase tracking-wider text-gray-400">Target Housing Requirements</h3>
                             
                             <div>
-                                <div class="flex justify-between text-xs mb-1">
-                                    <span class="font-medium text-gray-300">UTEP Target Capacity</span>
-                                    <span class="text-gray-400 font-semibold">{stats.totalNetUnits.toLocaleString()} / {TARGETS.UTEP.toLocaleString()}</span>
+                                <div className="flex justify-between text-xs mb-1">
+                                    <span className="font-medium text-gray-300">UTEP Target Capacity</span>
+                                    <span className="text-gray-400 font-semibold">{stats.totalNetUnits.toLocaleString()} / {TARGETS.UTEP.toLocaleString()}</span>
                                 </div>
-                                <div class="w-full bg-gray-800 rounded-full h-2">
-                                    <div class="bg-blue-500 h-2 rounded-full transition-all duration-300" style={{ width: `${utepProgress}%` }}></div>
+                                <div className="w-full bg-gray-800 rounded-full h-2">
+                                    <div className="bg-blue-500 h-2 rounded-full transition-all duration-300" style={{ width: `${utepProgress}%` }}></div>
                                 </div>
                             </div>
 
                             <div>
-                                <div class="flex justify-between text-xs mb-1">
-                                    <span class="font-medium text-gray-300">EPCC Target Capacity</span>
-                                    <span class="text-gray-400 font-semibold">{stats.totalNetUnits.toLocaleString()} / {TARGETS.EPCC.toLocaleString()}</span>
+                                <div className="flex justify-between text-xs mb-1">
+                                    <span className="font-medium text-gray-300">EPCC Target Capacity</span>
+                                    <span className="text-gray-400 font-semibold">{stats.totalNetUnits.toLocaleString()} / {TARGETS.EPCC.toLocaleString()}</span>
                                 </div>
-                                <div class="w-full bg-gray-800 rounded-full h-2">
-                                    <div class="bg-emerald-500 h-2 rounded-full transition-all duration-300" style={{ width: `${epccProgress}%` }}></div>
+                                <div className="w-full bg-gray-800 rounded-full h-2">
+                                    <div className="bg-emerald-500 h-2 rounded-full transition-all duration-300" style={{ width: `${epccProgress}%` }}></div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
-                    <div class="flex-1 relative">
+                    <div className="flex-1 relative">
                         <div id="map" />
                         
-                        <div class="absolute bottom-6 left-6 bg-gray-900/90 backdrop-blur border border-gray-800 p-4 rounded-lg shadow-xl z-[1000] text-xs space-y-2">
+                        <div className="absolute bottom-6 left-6 bg-gray-900/90 backdrop-blur border border-gray-800 p-4 rounded-lg shadow-xl z-[1000] text-xs space-y-2">
                             <h4 class="font-bold text-gray-300 mb-1">Simulation Legend</h4>
                             <div class="flex items-center space-x-2">
                                 <div class="w-4 h-4 bg-amber-500 rounded bg-opacity-70 border border-amber-600"></div>

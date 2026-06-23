@@ -173,14 +173,14 @@
                 map.removeLayer(geojsonLayer);
             }
 
-            // Read live primitive value state conditions from form elements
-            const stories = parseInt(elStories.value);
+            // Read live primitive value state conditions from form elements with explicit parsing
+            const stories = parseInt(elStories.value, 10);
             const farThreshold = parseFloat(elFar.value);
-            const setbackLever = elSetback.value === "1" ? 0.2 : 1.0; // 0.2 represents Zero Lot Line mode
+            const setbackLever = parseInt(elSetback.value, 10) === 1 ? 0.2 : 1.0; // Fixed type evaluation check
 
             // Update user interface slider labels
-            valStories.innerText = `${stories} Stories`;
-            valFar.innerText = `FAR < ${farThreshold.toFixed(2)}`;
+            valStories.innerText = stories + " Stories";
+            valFar.innerText = "FAR < " + farThreshold.toFixed(2);
             valSetback.innerText = setbackLever === 0.2 ? 'Zero-Lot Line' : 'Standard Baseline';
 
             let totalNetUnits = 0;
@@ -189,17 +189,21 @@
             // Geometry styling function applied frame-by-frame
             function styleFeature(feature) {
                 const props = feature.properties;
-                const isSoftSite = props.EXISTING_FAR < farThreshold;
+                const existingFar = parseFloat(props.EXISTING_FAR || 0);
+                const isSoftSite = existingFar < farThreshold;
 
                 if (isSoftSite) {
                     activeSoftSites++;
                     
                     // Run core capacity math modeling matching Python engine setup
-                    const modFootprint = props.buildable_footprint_sqft * (2.0 - setbackLever);
+                    const buildableFootprint = parseFloat(props.buildable_footprint_sqft || 0);
+                    const modFootprint = buildableFootprint * (2.0 - setbackLever);
                     const totalSimBuildableSqft = modFootprint * stories;
                     const leasableSqft = totalSimBuildableSqft * 0.85;
                     const grossUnits = Math.floor(leasableSqft / 800);
-                    const existingUnitsEst = Math.floor((props.EXISTING_FAR * props.LAND_ACRES * 43560) / 800);
+                    
+                    const landAcres = parseFloat(props.LAND_ACRES || 0);
+                    const existingUnitsEst = Math.floor((existingFar * landAcres * 43560) / 800);
                     
                     const netUnits = Math.max(0, grossUnits - existingUnitsEst);
                     totalNetUnits += netUnits;
@@ -234,12 +238,13 @@
                         
                         const props = feature.properties;
                         const netUnits = props.runtime_net_units || 0;
+                        const existingFar = parseFloat(props.EXISTING_FAR || 0);
                         
-                        currentLayer.bindTooltip(`
-                            <strong>Zoning District:</strong> ${props.ZONELABEL || 'Unknown'}<br/>
-                            <strong>Existing Base FAR:</strong> ${parseFloat(props.EXISTING_FAR || 0).toFixed(2)}<br/>
-                            <strong>Simulated Net Units:</strong> ${netUnits.toLocaleString()}
-                        `, { className: 'leaflet-tooltip-custom', sticky: true }).openTooltip();
+                        currentLayer.bindTooltip([
+                            "<strong>Zoning District:</strong> " + (props.ZONELABEL || 'Unknown') + "<br/>",
+                            "<strong>Existing Base FAR:</strong> " + existingFar.toFixed(2) + "<br/>",
+                            "<strong>Simulated Net Units:</strong> " + netUnits.toLocaleString()
+                        ].join(""), { className: 'leaflet-tooltip-custom', sticky: true }).openTooltip();
                     },
                     mouseout: (e) => {
                         geojsonLayer.resetStyle(e.target);
@@ -255,17 +260,17 @@
 
             // Refresh text KPI values
             kpiUnits.innerText = totalNetUnits.toLocaleString();
-            kpiParcels.innerText = `Net units generated across ${activeSoftSites.toLocaleString()} active lots.`;
+            kpiParcels.innerText = "Net units generated across " + activeSoftSites.toLocaleString() + " active lots.";
 
             // Adjust target enrollment bar scales
             const utepPct = Math.min(100, (totalNetUnits / TARGETS.UTEP) * 100);
             const epccPct = Math.min(100, (totalNetUnits / TARGETS.EPCC) * 100);
 
-            utepLabel.innerText = `${totalNetUnits.toLocaleString()} / ${TARGETS.UTEP.toLocaleString()}`;
-            utepBar.style.width = `${utepPct}%`;
+            utepLabel.innerText = totalNetUnits.toLocaleString() + " / " + TARGETS.UTEP.toLocaleString();
+            utepBar.style.width = utepPct + "%";
 
-            epccLabel.innerText = `${totalNetUnits.toLocaleString()} / ${TARGETS.EPCC.toLocaleString()}`;
-            epccBar.style.width = `${epccPct}%`;
+            epccLabel.innerText = totalNetUnits.toLocaleString() + " / " + TARGETS.EPCC.toLocaleString();
+            epccBar.style.width = epccPct + "%";
         }
 
         // ATTACH REAL-TIME SLIDER EVENT LISTENERS
@@ -275,11 +280,6 @@
 
         // MAP LIFECYCLE INITIATION
         window.onload = initMap;
-    </script>
-</body>
-</html>
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<Dashboard />);
     </script>
 </body>
 </html>

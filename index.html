@@ -91,7 +91,7 @@
 
             <div class="mt-4 pt-4 border-t border-gray-800">
                 <div class="bg-gray-800/50 p-4 rounded-lg border border-gray-800">
-                    <div class="text-xs text-gray-400 font-medium uppercase tracking-wider">Simulated Net Housing Yield</div>
+                    <div class="text-xs text-gray-400 font-medium uppercase tracking-wider">Total Combined Housing Net Yield</div>
                     <div id="kpi-units" class="text-3xl font-extrabold text-amber-500 mt-1">0</div>
                     <div id="kpi-parcels" class="text-[10px] text-gray-400 mt-1">Net units generated across 0 active lots.</div>
                 </div>
@@ -103,7 +103,7 @@
             
             <div>
                 <div class="flex justify-between text-xs mb-1">
-                    <span class="font-medium text-gray-300">UTEP Target Capacity</span>
+                    <span class="font-medium text-gray-300">UTEP Boundary Capacity</span>
                     <span id="utep-label" class="text-gray-400 font-semibold">0 / 26,297</span>
                 </div>
                 <div class="w-full bg-gray-800 rounded-full h-2">
@@ -113,7 +113,7 @@
 
             <div>
                 <div class="flex justify-between text-xs mb-1">
-                    <span class="font-medium text-gray-300">EPCC Target Capacity</span>
+                    <span class="font-medium text-gray-300">EPCC Boundary Capacity</span>
                     <span id="epcc-label" class="text-gray-400 font-semibold">0 / 25,567</span>
                 </div>
                 <div class="w-full bg-gray-800 rounded-full h-2">
@@ -146,7 +146,7 @@
     <script>
         const TARGETS = { UTEP: 26297, EPCC: 25567 };
 
-        // DOM REFERENCES
+        // DOM SELECTORS
         const elStories = document.getElementById('slider-stories');
         const elFar = document.getElementById('slider-far');
         const elSetback = document.getElementById('slider-setback');
@@ -189,7 +189,7 @@
                     rawGeojsonData = data;
                     runSimulation();
                 })
-                .catch(err => console.error("Error fetching map data:", err));
+                .catch(err => console.error("Error fetching map file assets:", err));
         }
 
         function runSimulation() {
@@ -210,19 +210,21 @@
             valUnitsAcre.innerText = maxUnitsPerAcre === 150 ? "No Cap" : maxUnitsPerAcre + " Units/Acre";
             valCoverage.innerText = (maxCoveragePct * 100) + "%";
 
-            let totalNetUnits = 0;
+            // CALCULATE TALLIES SECURELY
+            let totalNetUnitsCombined = 0;
+            let utepIsolatedUnits = 0;
+            let epccIsolatedUnits = 0;
             let activeSoftSites = 0;
 
             function styleFeature(feature) {
                 const props = feature.properties;
                 const existingFar = parseFloat(props.EXISTING_FAR || 0);
+                const campusAffinity = props.CAMPUS_AFFINITY || 'NONE';
                 
-                // Determine Covenant Block Status
                 const hasCovenant = props.COVENANT === 'Y';
                 const allowsMfByCovenant = String(props.allow_mf) !== 'false';
-                
-                // Absolute structural blocking rule if covenants toggle is checked
                 const isBlockedByCovenant = enforceCovenants && hasCovenant && !allowsMfByCovenant;
+                
                 const isSoftSite = (existingFar < farThreshold) && !isBlockedByCovenant;
 
                 if (isBlockedByCovenant) {
@@ -242,7 +244,7 @@
                     const baseBuildableFootprint = parseFloat(props.buildable_footprint_sqft || 0);
                     let modFootprint = baseBuildableFootprint * (2.0 - setbackLever);
                     
-                    // APPLY COVERAGE CAP
+                    // Lot coverage control pass
                     const maxAllowedFootprintByCoverage = parcelSqft * maxCoveragePct;
                     if (modFootprint > maxAllowedFootprintByCoverage) {
                         modFootprint = maxAllowedFootprintByCoverage;
@@ -252,7 +254,7 @@
                     const leasableSqft = totalSimBuildableSqft * 0.85;
                     let calculatedGrossUnits = Math.floor(leasableSqft / 800);
                     
-                    // APPLY UNITS PER ACRE CAP
+                    // Units per acre slider constraint check
                     if (maxUnitsPerAcre < 150) {
                         const maxAllowedUnitsByDensity = Math.floor(landAcres * maxUnitsPerAcre);
                         if (calculatedGrossUnits > maxAllowedUnitsByDensity) {
@@ -260,7 +262,7 @@
                         }
                     }
 
-                    // COVENANT MAX_UNITS OVERRIDE RULE
+                    // Covenant override step
                     const explicitCovMaxUnits = parseInt(props.max_units, 10);
                     if (enforceCovenants && hasCovenant && !isNaN(explicitCovMaxUnits) && explicitCovMaxUnits > 0) {
                         if (calculatedGrossUnits > explicitCovMaxUnits) {
@@ -270,7 +272,19 @@
                     
                     const existingUnitsEst = Math.floor((existingFar * parcelSqft) / 800);
                     const netUnits = Math.max(0, calculatedGrossUnits - existingUnitsEst);
-                    totalNetUnits += netUnits;
+                    
+                    totalNetUnitsCombined += netUnits;
+                    
+                    // TALLY CLEANLY ACCORDING TO THE SPATIAL PARTITION LABELS
+                    if (campusAffinity === 'UTEP') {
+                        utepIsolatedUnits += netUnits;
+                    } else if (campusAffinity === 'EPCC') {
+                        epccIsolatedUnits += netUnits;
+                    } else if (campusAffinity === 'BOTH') {
+                        const splitUnits = Math.floor(netUnits / 2);
+                        utepIsolatedUnits += splitUnits;
+                        epccIsolatedUnits += (netUnits - splitUnits);
+                    }
 
                     feature.properties.runtime_net_units = netUnits;
                     feature.properties.runtime_status = "Developable Soft Site";
@@ -298,6 +312,7 @@
                         
                         currentLayer.bindTooltip([
                             "<strong>Zoning District:</strong> " + (props.ZONELABEL || 'Unknown') + "<br/>",
+                            "<strong>Campus Zone:</strong> " + (props.CAMPUS_AFFINITY || 'None') + "<br/>",
                             "<strong>Status:</strong> " + status + "<br/>",
                             "<strong>Existing Base FAR:</strong> " + parseFloat(props.EXISTING_FAR || 0).toFixed(2) + "<br/>",
                             "<strong>Simulated Net Units:</strong> " + netUnits.toLocaleString()
@@ -312,16 +327,17 @@
                 onEachFeature: onEachFeature
             }).addTo(map);
 
-            kpiUnits.innerText = totalNetUnits.toLocaleString();
+            kpiUnits.innerText = totalNetUnitsCombined.toLocaleString();
             kpiParcels.innerText = "Net units generated across " + activeSoftSites.toLocaleString() + " active lots.";
 
-            const utepPct = Math.min(100, (totalNetUnits / TARGETS.UTEP) * 100);
-            const epccPct = Math.min(100, (totalNetUnits / TARGETS.EPCC) * 100);
+            // ADJUST RETAINED TARGET PROGRESS INDICATION BARS
+            const utepPct = Math.min(100, (utepIsolatedUnits / TARGETS.UTEP) * 100);
+            const epccPct = Math.min(100, (epccIsolatedUnits / TARGETS.EPCC) * 100);
 
-            utepLabel.innerText = totalNetUnits.toLocaleString() + " / " + TARGETS.UTEP.toLocaleString();
+            utepLabel.innerText = utepIsolatedUnits.toLocaleString() + " / " + TARGETS.UTEP.toLocaleString();
             utepBar.style.width = utepPct + "%";
 
-            epccLabel.innerText = totalNetUnits.toLocaleString() + " / " + TARGETS.EPCC.toLocaleString();
+            epccLabel.innerText = epccIsolatedUnits.toLocaleString() + " / " + TARGETS.EPCC.toLocaleString();
             epccBar.style.width = epccPct + "%";
         }
 

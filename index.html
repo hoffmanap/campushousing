@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campus Housing Bill - Interactive Leaflet Simulation</title>
+    
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body, html, #root { margin: 0; padding: 0; height: 100%; width: 100%; overflow: hidden; }
+        #map { height: 100%; width: 100%; background: #111827; }
+        /* Style adjustments for custom Leaflet tooltips */
+        .leaflet-tooltip-custom {
+            background: #1f2937 !important;
+            color: #fff !important;
+            border: 1px solid #374151 !important;
+            border-radius: 0.375rem !important;
+            padding: 4px 8px !important;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white font-sans">
+
+    <div id="root" class="h-full w-full relative"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef } = React;
+
+        // TARGET ENROLLMENT BENCHMARKS
+        const TARGETS = {
+            UTEP: 26297,
+            EPCC: 25567
+        };
+
+        function Dashboard() {
+            const mapRef = useRef(null);
+            const geoJsonLayerRef = useRef(null);
+            const [geoJsonData, setGeoJsonData] = useState(null);
+
+            // SIMULATION LEVERS (REACT STATE)
+            const [stories, setStories] = useState(4); // Permitted Building Height (Stories)
+            const [farThreshold, setFarThreshold] = useState(0.3); // Market Reutilization Cutoff
+            const [setbackLever, setSetbackLever] = useState(1.0); // 1.0 = Standard setbacks, 0.2 = Zero Lot Line
+
+            // OUTPUT METRICS
+            const [stats, setStats] = useState({ totalNetUnits: 0, softSitesCount: 0 });
+
+            // 1. Fetch data file on load
+            useEffect(() => {
+                fetch('campus_zone_parcels.geojson')
+                    .then(res => res.json())
+                    .then(data => setGeoJsonData(data))
+                    .catch(err => console.error("Error loading GeoJSON data:", err));
+            }, []);
+
+            // 2. Initialize Leaflet Map
+            useEffect(() => {
+                if (mapRef.current) return;
+
+                // Center map coordinates focused on El Paso's core university zone
+                mapRef.current = L.map('map', {
+                    center: [31.777, -106.485],
+                    zoom: 13,
+                    zoomControl: false
+                });
+
+                // Add Zoom Control to the bottom-right corner out of the sidebar's way
+                L.control.zoom({ position: 'bottomright' }).addTo(mapRef.current);
+
+                // Load OpenStreetMap's Dark Matter layer (CartoDB) - 100% Free & Tokenless
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+                    subdomains: 'abcd',
+                    maxZoom: 20
+                }).addTo(mapRef.current);
+            }, []);
+
+            // 3. Dynamic Calculation & Map Update Engine
+            useEffect(() => {
+                if (!geoJsonData || !mapRef.current) return;
+
+                // Remove existing layer if it exists to redraw fresh updates on slider change
+                if (geoJsonLayerRef.current) {
+                    mapRef.current.removeLayer(geoJsonLayerRef.current);
+                }
+
+                let aggregatedUnits = 0;
+                let activeSoftSites = 0;
+
+                // Function to stylize each parcel feature based on current slider states
+                function styleFeature(feature) {
+                    const props = feature.properties;
+                    // Check if current parcel falls below the interactive FAR threshold slider
+                    const isSoftSite = props.EXISTING_FAR < farThreshold;
+
+                    if (isSoftSite) {
+                        activeSoftSites++;
+                        
+                        // Apply Policy Lever modifications: Adjust buildable footprint room based on setback slider
+                        const modFootprint = props.buildable_footprint_sqft * (2.0 - setbackLever);
+                        const totalSimBuildableSqft = modFootprint * stories;
+                        
+                        // Recompute potential leasable layout metrics using backend calculation rules
+                        const leasableSqft = totalSimBuildableSqft * 0.85;
+                        const grossUnits = Math.floor(leasableSqft / 800);
+                        const existingUnitsEst = Math.floor((props.EXISTING_FAR * props.LAND_ACRES * 43560) / 800);
+                        
+                        const simulatedNetUnits = Math.max(0, grossUnits - existingUnitsEst);
+                        aggregatedUnits += simulatedNetUnits;
+
+                        // Save the dynamic calc to the feature style runtime context for popup use
+                        feature.properties.runtime_net_units = simulatedNetUnits;
+
+                        // Glowing Amber design for active redevelopment sites
+                        return {
+                            fillColor: '#f59e0b',
+                            weight: 1,
+                            opacity: 0.8,
+                            color: '#d97706',
+                            fillOpacity: 0.65
+                        };
+                    } else {
+                        feature.properties.runtime_net_units = 0;
+                        // Muted Blue style for built, stable zones unaffected by the policy changes
+                        return {
+                            fillColor: '#1e3a8a',
+                            weight: 0.5,
+                            opacity: 0.4,
+                            color: '#2563eb',
+                            fillOpacity: 0.2
+                        };
+                    }
+                }
+
+                // Add interactive details on click/hover for map polygons
+                function onEachFeature(feature, layer) {
+                    layer.on({
+                        mouseover: (e) => {
+                            const layer = e.target;
+                            layer.setStyle({ weight: 2, color: '#ffffff', fillOpacity: 0.85 });
+                            
+                            const props = feature.properties;
+                            const netUnits = props.runtime_net_units || 0;
+                            
+                            layer.bindTooltip(`
+                                <strong>Zoning:</strong> ${props.ZONELABEL}<br/>
+                                <strong>Existing FAR:</strong> ${parseFloat(props.EXISTING_FAR).toFixed(2)}<br/>
+                                <strong>Simulated Net Units:</strong> ${netUnits}
+                            `, { className: 'leaflet-tooltip-custom', sticky: true }).openTooltip();
+                        },
+                        mouseout: (e) => {
+                            geoJsonLayerRef.current.resetStyle(e.target);
+                        }
+                    });
+                }
+
+                // Create and bind new GeoJSON collection straight to the map canvas view
+                geoJsonLayerRef.current = L.geoJSON(geoJsonData, {
+                    style: styleFeature,
+                    onEachFeature: onEachFeature
+                }).addTo(mapRef.current);
+
+                // Refresh side dashboard metrics module
+                setStats({
+                    totalNetUnits: aggregatedUnits,
+                    softSitesCount: activeSoftSites
+                });
+
+            }, [geoJsonData, stories, farThreshold, setbackLever]);
+
+            // Calculate progress bars clipped safely to 100% capacity bounds
+            const utepProgress = Math.min(100, (stats.totalNetUnits / TARGETS.UTEP) * 100);
+            const epccProgress = Math.min(100, (stats.totalNetUnits / TARGETS.EPCC) * 100);
+
+            return (
+                <div class="flex h-full w-full">
+                    {/* LEFT CONTROL PANEL */}
+                    <div class="w-96 bg-gray-900 border-r border-gray-800 p-6 flex flex-col justify-between z-[1000] shadow-2xl overflow-y-auto">
+                        <div>
+                            <h1 class="text-xl font-bold tracking-tight text-amber-500 mb-1">Campus Housing Model</h1>
+                            <p class="text-xs text-gray-400 mb-6">Simulate open-source zoning layouts for local college zones.</p>
+
+                            <div class="space-y-6">
+                                <div>
+                                    <div class="flex justify-between text-sm mb-1">
+                                        <label class="font-medium">Permitted Height</label>
+                                        <span class="text-amber-400 font-semibold">{stories} Stories</span>
+                                    </div>
+                                    <input type="range" min="4" max="12" step="1" value={stories} 
+                                        onChange={(e) => setStories(parseInt(e.target.value))}
+                                        class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-amber-500" />
+                                    <p class="text-[10px] text-gray-500 mt-1">Adjust maximum story density across active parcels.</p>
+                                </div>
+
+                                <div>
+                                    <div class="flex justify-between text-sm mb-1">
+                                        <label class="font-medium">Soft-Site Market Filter</label>
+                                        <span class="text-amber-400 font-semibold">FAR &lt; {farThreshold}</span>
+                                    </div>
+                                    <input type="range" min="0.1" max="0.5" step="0.05" value={farThreshold} 
+                                        onChange={(e) => setFarThreshold(parseFloat(e.target.value))}
+                                        class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-amber-500" />
+                                    <p class="text-[10px] text-gray-500 mt-1">Capture properties with low layout efficiency ratios.</p>
+                                </div>
+
+                                <div>
+                                    <div class="flex justify-between text-sm mb-1">
+                                        <label class="font-medium">Setback Framework Mode</label>
+                                        <span class="text-amber-400 font-semibold">{setbackLever === 0.2 ? 'Zero-Lot Line' : 'Standard Baseline'}</span>
+                                    </div>
+                                    <input type="range" min="0.2" max="1.0" step="0.8" value={setbackLever} 
+                                        onChange={(e) => setSetbackLever(parseFloat(e.target.value))}
+                                        class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-amber-500" />
+                                    <p class="text-[10px] text-gray-500 mt-1">Toggle urban zero-lot-line models to expand buildable space.</p>
+                                </div>
+                            </div>
+
+                            <div class="mt-8 pt-6 border-t border-gray-800 space-y-4">
+                                <div class="bg-gray-800/50 p-4 rounded-lg border border-gray-800">
+                                    <div class="text-xs text-gray-400 font-medium uppercase tracking-wider">Simulated Net Housing Yield</div>
+                                    <div class="text-3xl font-extrabold text-amber-500 mt-1">{stats.totalNetUnits.toLocaleString()}</div>
+                                    <div class="text-[10px] text-gray-400 mt-1">Net units generated on {stats.softSitesCount} active lots.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pt-6 border-t border-gray-800 space-y-4">
+                            <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400">Target Housing Requirements</h3>
+                            
+                            <div>
+                                <div class="flex justify-between text-xs mb-1">
+                                    <span class="font-medium text-gray-300">UTEP Target Capacity</span>
+                                    <span class="text-gray-400 font-semibold">{stats.totalNetUnits.toLocaleString()} / {TARGETS.UTEP.toLocaleString()}</span>
+                                </div>
+                                <div class="w-full bg-gray-800 rounded-full h-2">
+                                    <div class="bg-blue-500 h-2 rounded-full transition-all duration-300" style={{ width: `${utepProgress}%` }}></div>
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="flex justify-between text-xs mb-1">
+                                    <span class="font-medium text-gray-300">EPCC Target Capacity</span>
+                                    <span class="text-gray-400 font-semibold">{stats.totalNetUnits.toLocaleString()} / {TARGETS.EPCC.toLocaleString()}</span>
+                                </div>
+                                <div class="w-full bg-gray-800 rounded-full h-2">
+                                    <div class="bg-emerald-500 h-2 rounded-full transition-all duration-300" style={{ width: `${epccProgress}%` }}></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="flex-1 relative">
+                        <div id="map" />
+                        
+                        <div class="absolute bottom-6 left-6 bg-gray-900/90 backdrop-blur border border-gray-800 p-4 rounded-lg shadow-xl z-[1000] text-xs space-y-2">
+                            <h4 class="font-bold text-gray-300 mb-1">Simulation Legend</h4>
+                            <div class="flex items-center space-x-2">
+                                <div class="w-4 h-4 bg-amber-500 rounded bg-opacity-70 border border-amber-600"></div>
+                                <span>Redevelopable Soft Site (Adds Yield)</span>
+                            </div>
+                            <div class="flex items-center space-x-2">
+                                <div class="w-4 h-4 bg-blue-900 rounded bg-opacity-40 border border-blue-600"></div>
+                                <span>Stable Structural Zone (No Change)</span>
+                            </div>
+                            <p class="text-[9px] text-gray-500 italic max-w-[210px] pt-1">Hover cursor over individual parcel boundaries to review local zoning definitions and computed net unit potential.</p>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<Dashboard />);
+    </script>
+</body>
+</html>

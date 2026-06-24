@@ -1,6 +1,6 @@
 # El Paso Campus Housing Zone — Legislative Impact Analysis
 
-This repository contains the geospatial pre-processing engine, dataset schemas, and mathematical modeling parameters used to analyze the municipal and physical impacts of the proposed **Texas Campus Housing Bill (Chapter 218, Local Government Code)**. 
+This repository contains the geospatial pre-processing engine, dataset schemas, and mathematical modeling parameters used to analyze the municipal and physical impacts of upzonint near Higher Learning Institutions. 
 
 The end product of this analysis feeds a dynamic, interactive dashboard that models zoning optimization, identifies underutilized parcels, and projects net housing unit additions near major institutions of higher education in El Paso, Texas.
 
@@ -22,13 +22,13 @@ The designated impact zone is calculated automatically for each eligible campus 
 2. A distance radius from the campus boundary equal to the radius ($r$) of a perfect circle whose total area matches the exact total land acreage of that specific campus ($Area = \pi r^2$).
 
 ### C. Development Standards & Prohibited Municipal Constraints
-Inside the delineated Campus Housing Zone, standard restrictive municipal zoning overlays are legally superseded by Chapter 218 mandates. Municipalities are prohibited from enforcing regulations that limit density or layout, introducing the following by-right standards:
+Inside the delineated Campus Housing Zone, standard restrictive municipal zoning overlays are legally superseded. Municipalities are prohibited from enforcing regulations that limit density or layout, introducing the following by-right standards:
 * **By-Right Approvals:** Multifamily residential developments (defined as $\ge 3$ dwelling units per tract) and college dormitories are permitted entirely by-right without requiring discretionary variances, conditional use permits, or comprehensive plan amendments.
 * **Height Protections:** Building heights cannot be restricted to less than **45 feet** (approximately 4 stories) or the maximum height allowed under base zoning, whichever is greater.
-* **Elimination of Floor-Area Ratio (FAR):** Municipalities may not impose or enforce maximum FAR limits on multifamily developments within the zone.
-* **Dimensional Liberty:** No minimum lot size, lot width, or lot depth constraints can be used to impede multifamily construction.
+* **Elimination of Floor-Area Ratio (FAR):** No maximum FAR limits on multifamily developments permitted within the zone.
+* **Dimensional Standards:** No minimum lot size, lot width, or lot depth constraints can be used to impede multifamily construction.
 * **Setback Alignments:** Setbacks, stepbacks, or yard buffers cannot be stricter than those generally applicable to multifamily residential development citywide.
-* **Parking Mandates Eliminated:** Municipalities are legally forbidden from enforcing minimum off-street parking space requirements.
+* **Parking Mandates Eliminated:** Municipalities are forbidden from enforcing minimum off-street parking space requirements.
 
 ---
 

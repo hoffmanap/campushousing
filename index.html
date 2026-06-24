@@ -27,69 +27,104 @@
 <body class="bg-gray-900 text-white font-sans flex h-full w-full">
 
     <div class="w-96 bg-gray-900 border-r border-gray-800 p-6 flex flex-col justify-between z-[1000] shadow-2xl overflow-y-auto h-full">
-        <div>
-            <h1 class="text-xl font-bold tracking-tight text-amber-500 mb-1">Campus Housing Model</h1>
-            <p class="text-xs text-gray-400 mb-4">Simulate municipal policy leverage options under Chapter 218 constraints.</p>
+        <div class="space-y-5">
+            <div>
+                <h1 class="text-xl font-bold tracking-tight text-amber-500 mb-1">Campus Housing Model</h1>
+                <p class="text-xs text-gray-400">Simulate dynamic municipal leverage points under Chapter 218 constraints.</p>
+            </div>
 
-            <div class="space-y-4">
+            <div class="p-3 bg-gray-800/30 rounded-lg border border-gray-800 space-y-3">
+                <label class="text-[11px] font-bold uppercase tracking-wider text-gray-400 block">Statutory Buffer Rule</label>
+                <div class="grid grid-cols-1 gap-2">
+                    <button id="btn-fixed-rule" onclick="setBufferRule('fixed')" class="w-full text-left p-2.5 text-xs rounded border bg-amber-500/10 border-amber-500 text-amber-400 transition-all">
+                        <div class="font-bold">Sec. 218.001(5)(A)</div>
+                        <div class="text-gray-400 text-[10px]">Fixed 1/2 Mile Limit (804.6m)</div>
+                    </button>
+                    <button id="btn-area-rule" onclick="setBufferRule('area')" class="w-full text-left p-2.5 text-xs rounded border bg-gray-800/40 border-gray-800 text-gray-300 hover:bg-gray-800 transition-all">
+                        <div class="font-bold">Sec. 218.001(5)(B)</div>
+                        <div class="text-gray-400 text-[10px]">Area-Equivalent Radius Limit</div>
+                    </button>
+                </div>
+
+                <div class="pt-2 border-t border-gray-800 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs text-gray-300 font-medium">Manual Radius Overrides</span>
+                        <input id="toggle-override" type="checkbox" onchange="toggleOverrideSliders()" class="accent-amber-500 h-3.5 w-3.5 cursor-pointer">
+                    </div>
+                    
+                    <div id="override-sliders-container" class="opacity-40 pointer-events-none space-y-2 transition-all duration-200">
+                        <div>
+                            <div class="flex justify-between text-[11px] text-gray-400 mb-0.5">
+                                <span>UTEP Bound Threshold</span>
+                                <span id="lbl-utep-radius" class="text-amber-400 font-mono">804m</span>
+                            </div>
+                            <input id="slider-utep-radius" type="range" min="400" max="1600" step="20" value="804" oninput="runSimulation()" class="w-full h-1 bg-gray-700 rounded appearance-none accent-amber-500 cursor-pointer" />
+                        </div>
+                        <div>
+                            <div class="flex justify-between text-[11px] text-gray-400 mb-0.5">
+                                <span>EPCC Bound Threshold</span>
+                                <span id="lbl-epcc-radius" class="text-amber-400 font-mono">804m</span>
+                            </div>
+                            <input id="slider-epcc-radius" type="range" min="400" max="1600" step="20" value="804" oninput="runSimulation()" class="w-full h-1 bg-gray-700 rounded appearance-none accent-amber-500 cursor-pointer" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-3.5">
                 <div>
-                    <div class="flex justify-between text-sm mb-1">
+                    <div class="flex justify-between text-xs mb-1">
                         <label class="font-medium text-gray-200">Permitted Height</label>
-                        <span id="stories-val" class="text-amber-400 font-semibold">4 Stories</span>
+                        <span id="stories-val" class="text-amber-400 font-semibold text-xs">4 Stories</span>
                     </div>
-                    <input id="slider-stories" type="range" min="4" max="12" step="1" value="4" 
-                        class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-amber-500" />
+                    <input id="slider-stories" type="range" min="4" max="12" step="1" value="4" oninput="runSimulation()" class="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-amber-500" />
                 </div>
 
                 <div>
-                    <div class="flex justify-between text-sm mb-1">
+                    <div class="flex justify-between text-xs mb-1">
                         <label class="font-medium text-gray-200">Soft-Site Market Filter</label>
-                        <span id="far-val" class="text-amber-400 font-semibold">FAR &lt; 0.30</span>
+                        <span id="far-val" class="text-amber-400 font-semibold text-xs">FAR &lt; 0.30</span>
                     </div>
-                    <input id="slider-far" type="range" min="0.1" max="0.5" step="0.05" value="0.3" 
-                        class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-amber-500" />
+                    <input id="slider-far" type="range" min="0.1" max="0.5" step="0.05" value="0.3" oninput="runSimulation()" class="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-amber-500" />
                 </div>
 
                 <div>
-                    <div class="flex justify-between text-sm mb-1">
+                    <div class="flex justify-between text-xs mb-1">
                         <label class="font-medium text-gray-200">Setback Framework Mode</label>
-                        <span id="setback-val" class="text-amber-400 font-semibold">Standard Baseline</span>
+                        <span id="setback-val" class="text-amber-400 font-semibold text-xs">Standard Baseline</span>
                     </div>
-                    <input id="slider-setback" type="range" min="0" max="1" step="1" value="0" 
-                        class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-amber-500" />
+                    <input id="slider-setback" type="range" min="0" max="1" step="1" value="0" oninput="runSimulation()" class="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-amber-500" />
                 </div>
 
                 <div>
-                    <div class="flex justify-between text-sm mb-1">
+                    <div class="flex justify-between text-xs mb-1">
                         <label class="font-medium text-gray-200">Max Units Per Acre</label>
-                        <span id="units-acre-val" class="text-amber-400 font-semibold">No Cap</span>
+                        <span id="units-acre-val" class="text-amber-400 font-semibold text-xs">No Cap</span>
                     </div>
-                    <input id="slider-units-acre" type="range" min="20" max="150" step="5" value="150" 
-                        class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-amber-500" />
+                    <input id="slider-units-acre" type="range" min="20" max="150" step="5" value="150" oninput="runSimulation()" class="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-amber-500" />
                 </div>
 
                 <div>
-                    <div class="flex justify-between text-sm mb-1">
+                    <div class="flex justify-between text-xs mb-1">
                         <label class="font-medium text-gray-200">Max Lot Coverage</label>
-                        <span id="coverage-val" class="text-amber-400 font-semibold">80%</span>
+                        <span id="coverage-val" class="text-amber-400 font-semibold text-xs">80%</span>
                     </div>
-                    <input id="slider-coverage" type="range" min="30" max="100" step="5" value="80" 
-                        class="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-amber-500" />
+                    <input id="slider-coverage" type="range" min="30" max="100" step="5" value="80" oninput="runSimulation()" class="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-amber-500" />
                 </div>
 
-                <div class="flex items-center justify-between p-3 bg-gray-800/40 rounded-lg border border-gray-800">
+                <div class="flex items-center justify-between p-2.5 bg-gray-800/40 rounded-lg border border-gray-800">
                     <div>
-                        <label class="text-sm font-medium text-gray-200 block">Enforce Private Covenants</label>
-                        <span class="text-[10px] text-gray-500">Activates legal covenants overlays</span>
+                        <label class="text-xs font-medium text-gray-200 block">Enforce Private Covenants</label>
+                        <span class="text-[10px] text-gray-500 block">Activates restrictive overlays</span>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer">
-                        <input id="toggle-deed" type="checkbox" class="sr-only peer">
-                        <div class="w-11 h-6 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-300 after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                        <input id="toggle-deed" type="checkbox" onchange="runSimulation()" class="sr-only peer">
+                        <div class="w-9 h-5 bg-gray-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-gray-300 after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-amber-500"></div>
                     </label>
                 </div>
             </div>
 
-            <div class="mt-4 pt-4 border-t border-gray-800">
+            <div class="pt-3 border-t border-gray-800">
                 <div class="bg-gray-800/50 p-4 rounded-lg border border-gray-800">
                     <div class="text-xs text-gray-400 font-medium uppercase tracking-wider">Total Combined Housing Net Yield</div>
                     <div id="kpi-units" class="text-3xl font-extrabold text-amber-500 mt-1">0</div>
@@ -98,26 +133,27 @@
             </div>
         </div>
 
-        <div class="pt-4 border-t border-gray-800 space-y-3">
+        <div class="pt-3 border-t border-gray-800 space-y-2.5">
             <h3 class="text-xs font-bold uppercase tracking-wider text-gray-400">Target Housing Requirements</h3>
-            
             <div>
-                <div class="flex justify-between text-xs mb-1">
+                <div class="flex justify-between text-xs mb-0.5">
                     <span class="font-medium text-gray-300">UTEP Boundary Capacity</span>
-                    <span id="utep-label" class="text-gray-400 font-semibold">0 / 26,297</span>
+                    <span id="utep-label" class="text-gray-400 font-semibold font-mono">0 / 26,297</span>
                 </div>
-                <div class="w-full bg-gray-800 rounded-full h-2">
-                    <div id="utep-bar" class="bg-blue-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                <div class="w-full bg-gray-800 rounded-full h-1.5">
+                    <div id="utep-bar" class="bg-blue-500 h-1.5 rounded-full transition-all duration-300" style="width: 0%"></div>
                 </div>
             </div>
-
             <div>
-                <div class="flex justify-between text-xs mb-1">
+                <div class="flex justify-between text-xs mb-0.5">
                     <span class="font-medium text-gray-300">EPCC Boundary Capacity</span>
-                    <span id="epcc-label" class="text-gray-400 font-semibold">0 / 25,567</span>
+                    <span id="epcc-label" class="text-gray-400 font-semibold font-mono">0 / 25,567</span>
                 </div>
-                <div class="w-full bg-gray-800 rounded-full h-2">
-                    <div id="epcc-bar" class="bg-emerald-500 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                <div class="w-full bg-gray-800 rounded-full h-1.5">
+                    <div id="utep-bar" class="bg-blue-500 h-1.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+                </div>
+                <div class="w-full bg-gray-800 rounded-full h-1.5">
+                    <div id="epcc-bar" class="bg-emerald-500 h-1.5 rounded-full transition-all duration-300" style="width: 0%"></div>
                 </div>
             </div>
         </div>
@@ -130,21 +166,33 @@
             <h4 class="font-bold text-gray-300 mb-1">Simulation Legend</h4>
             <div class="flex items-center space-x-2">
                 <div class="w-4 h-4 bg-amber-500 rounded bg-opacity-70 border border-amber-600"></div>
-                <span>Redevelopable Soft Site (Adds Yield)</span>
+                <span>Active & Developable Soft Site</span>
             </div>
             <div class="flex items-center space-x-2">
                 <div class="w-4 h-4 bg-blue-900 rounded bg-opacity-40 border border-blue-600"></div>
-                <span>Stable Structural Zone (No Change)</span>
+                <span>Stable Structural Zone (In Boundary)</span>
+            </div>
+            <div class="flex items-center space-x-2">
+                <div class="w-4 h-4 bg-gray-700 rounded bg-opacity-20 border border-gray-600"></div>
+                <span>Ineligible Structure (Outside Active Radius)</span>
             </div>
             <div class="flex items-center space-x-2">
                 <div class="w-4 h-4 bg-red-900 rounded bg-opacity-60 border border-red-600"></div>
-                <span>Blocked by Private Covenant Overlay</span>
+                <span>Blocked by Private Restriction Overlays</span>
             </div>
         </div>
     </div>
 
     <script>
         const TARGETS = { UTEP: 26297, EPCC: 25567 };
+        
+        // Legislative Constants (in meters) from Sec. 218.001(5)
+        const PRESETS = {
+            fixed: { utep: 804.67, epcc: 804.67 },    // Flat 0.50 miles
+            area: { utep: 735.48, epcc: 724.20 }     // Statutory Circle Radius match
+        };
+
+        let currentRule = 'fixed';
 
         // DOM SELECTORS
         const elStories = document.getElementById('slider-stories');
@@ -153,6 +201,12 @@
         const elUnitsAcre = document.getElementById('slider-units-acre');
         const elCoverage = document.getElementById('slider-coverage');
         const elDeedToggle = document.getElementById('toggle-deed');
+        const elOverrideToggle = document.getElementById('toggle-override');
+        
+        const elUtepSlider = document.getElementById('slider-utep-radius');
+        const elEpccSlider = document.getElementById('slider-epcc-radius');
+        const lblUtepRadius = document.getElementById('lbl-utep-radius');
+        const lblEpccRadius = document.getElementById('lbl-epcc-radius');
 
         const valStories = document.getElementById('stories-val');
         const valFar = document.getElementById('far-val');
@@ -169,18 +223,29 @@
 
         let map, geojsonLayer, rawGeojsonData = null;
 
+        function setBufferRule(rule) {
+            currentRule = rule;
+            document.getElementById('btn-fixed-rule').className = rule === 'fixed' ? "w-full text-left p-2.5 text-xs rounded border bg-amber-500/10 border-amber-500 text-amber-400 transition-all" : "w-full text-left p-2.5 text-xs rounded border bg-gray-800/40 border-gray-800 text-gray-300 hover:bg-gray-800 transition-all";
+            document.getElementById('btn-area-rule').className = rule === 'area' ? "w-full text-left p-2.5 text-xs rounded border bg-amber-500/10 border-amber-500 text-amber-400 transition-all" : "w-full text-left p-2.5 text-xs rounded border bg-gray-800/40 border-gray-800 text-gray-300 hover:bg-gray-800 transition-all";
+            runSimulation();
+        }
+
+        function toggleOverrideSliders() {
+            const container = document.getElementById('override-sliders-container');
+            if (elOverrideToggle.checked) {
+                container.classList.remove('opacity-40', 'pointer-events-none');
+            } else {
+                container.classList.add('opacity-40', 'pointer-events-none');
+            }
+            runSimulation();
+        }
+
         function initMap() {
-            map = L.map('map', {
-                center: [31.777, -106.485],
-                zoom: 13,
-                zoomControl: false
-            });
+            map = L.map('map', { center: [31.777, -106.485], zoom: 13, zoomControl: false });
             L.control.zoom({ position: 'bottomright' }).addTo(map);
 
             L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-                attribution: '&copy; OpenStreetMap &copy; CARTO',
-                subdomains: 'abcd',
-                maxZoom: 20
+                attribution: '&copy; OpenStreetMap &copy; CARTO'
             }).addTo(map);
 
             fetch('campus_zone_parcels.geojson')
@@ -197,6 +262,13 @@
 
             if (geojsonLayer) { map.removeLayer(geojsonLayer); }
 
+            // Get Current Active Radii Limits
+            let activeUtepLimit = elOverrideToggle.checked ? parseInt(elUtepSlider.value, 10) : PRESETS[currentRule].utep;
+            let activeEpccLimit = elOverrideToggle.checked ? parseInt(elEpccSlider.value, 10) : PRESETS[currentRule].epcc;
+
+            lblUtepRadius.innerText = Math.round(activeUtepLimit) + "m";
+            lblEpccRadius.innerText = Math.round(activeEpccLimit) + "m";
+
             const stories = parseInt(elStories.value, 10);
             const farThreshold = parseFloat(elFar.value);
             const setbackLever = parseInt(elSetback.value, 10) === 1 ? 0.2 : 1.0;
@@ -210,64 +282,60 @@
             valUnitsAcre.innerText = maxUnitsPerAcre === 150 ? "No Cap" : maxUnitsPerAcre + " Units/Acre";
             valCoverage.innerText = (maxCoveragePct * 100) + "%";
 
-            // CALCULATE TALLIES SECURELY
-            let totalNetUnitsCombined = 0;
-            let utepIsolatedUnits = 0;
-            let epccIsolatedUnits = 0;
-            let activeSoftSites = 0;
+            let totalNetUnitsCombined = 0, utepIsolatedUnits = 0, epccIsolatedUnits = 0, activeSoftSites = 0;
 
             function styleFeature(feature) {
                 const props = feature.properties;
-                const existingFar = parseFloat(props.EXISTING_FAR || 0);
                 const campusAffinity = props.CAMPUS_AFFINITY || 'NONE';
                 
+                // Read pre-calculated distance vectors from Python GIS pass
+                const distToUtep = props.DIST_UTEP_M !== undefined ? props.DIST_UTEP_M : 99999;
+                const distToEpcc = props.DIST_EPCC_M !== undefined ? props.DIST_EPCC_M : 99999;
+
+                // Evaluate dynamic eligibility logic
+                const inUtepRadius = distToUtep <= activeUtepLimit && campusAffinity !== 'EPCC';
+                const inEpccRadius = distToEpcc <= activeEpccLimit && campusAffinity !== 'UTEP';
+                const isLegallyEligible = inUtepRadius || inEpccRadius;
+
+                // RULE 1: GREY OUT OUTSIDE RUNTIME BUFFER BOUNDS
+                if (!isLegallyEligible) {
+                    feature.properties.runtime_net_units = 0;
+                    feature.properties.runtime_status = "Outside Active Statutory Boundary";
+                    return { fillColor: '#374151', weight: 0.5, opacity: 0.2, color: '#4b5563', fillOpacity: 0.08 };
+                }
+
                 const hasCovenant = props.COVENANT === 'Y';
                 const allowsMfByCovenant = String(props.allow_mf) !== 'false';
                 const isBlockedByCovenant = enforceCovenants && hasCovenant && !allowsMfByCovenant;
-                
-                const isSoftSite = (existingFar < farThreshold) && !isBlockedByCovenant;
 
                 if (isBlockedByCovenant) {
                     feature.properties.runtime_net_units = 0;
                     feature.properties.runtime_status = "Blocked By Private Restriction";
-                    return {
-                        fillColor: '#ef4444', weight: 1, opacity: 0.6, color: '#b91c1c', fillOpacity: 0.45
-                    };
+                    return { fillColor: '#ef4444', weight: 1, opacity: 0.6, color: '#b91c1c', fillOpacity: 0.45 };
                 }
+
+                const existingFar = parseFloat(props.EXISTING_FAR || 0);
+                const isSoftSite = (existingFar < farThreshold);
 
                 if (isSoftSite) {
                     activeSoftSites++;
-                    
                     const landAcres = parseFloat(props.LAND_ACRES || 0);
                     const parcelSqft = landAcres * 43560;
                     
-                    const baseBuildableFootprint = parseFloat(props.buildable_footprint_sqft || 0);
-                    let modFootprint = baseBuildableFootprint * (2.0 - setbackLever);
-                    
-                    // Lot coverage control pass
+                    let modFootprint = parseFloat(props.buildable_footprint_sqft || 0) * (2.0 - setbackLever);
                     const maxAllowedFootprintByCoverage = parcelSqft * maxCoveragePct;
-                    if (modFootprint > maxAllowedFootprintByCoverage) {
-                        modFootprint = maxAllowedFootprintByCoverage;
-                    }
+                    if (modFootprint > maxAllowedFootprintByCoverage) modFootprint = maxAllowedFootprintByCoverage;
 
-                    const totalSimBuildableSqft = modFootprint * stories;
-                    const leasableSqft = totalSimBuildableSqft * 0.85;
-                    let calculatedGrossUnits = Math.floor(leasableSqft / 800);
+                    let calculatedGrossUnits = Math.floor((modFootprint * stories * 0.85) / 800);
                     
-                    // Units per acre slider constraint check
                     if (maxUnitsPerAcre < 150) {
                         const maxAllowedUnitsByDensity = Math.floor(landAcres * maxUnitsPerAcre);
-                        if (calculatedGrossUnits > maxAllowedUnitsByDensity) {
-                            calculatedGrossUnits = maxAllowedUnitsByDensity;
-                        }
+                        if (calculatedGrossUnits > maxAllowedUnitsByDensity) calculatedGrossUnits = maxAllowedUnitsByDensity;
                     }
 
-                    // Covenant override step
                     const explicitCovMaxUnits = parseInt(props.max_units, 10);
                     if (enforceCovenants && hasCovenant && !isNaN(explicitCovMaxUnits) && explicitCovMaxUnits > 0) {
-                        if (calculatedGrossUnits > explicitCovMaxUnits) {
-                            calculatedGrossUnits = explicitCovMaxUnits;
-                        }
+                        if (calculatedGrossUnits > explicitCovMaxUnits) calculatedGrossUnits = explicitCovMaxUnits;
                     }
                     
                     const existingUnitsEst = Math.floor((existingFar * parcelSqft) / 800);
@@ -275,12 +343,9 @@
                     
                     totalNetUnitsCombined += netUnits;
                     
-                    // TALLY CLEANLY ACCORDING TO THE SPATIAL PARTITION LABELS
-                    if (campusAffinity === 'UTEP') {
-                        utepIsolatedUnits += netUnits;
-                    } else if (campusAffinity === 'EPCC') {
-                        epccIsolatedUnits += netUnits;
-                    } else if (campusAffinity === 'BOTH') {
+                    if (inUtepRadius && !inEpccRadius) utepIsolatedUnits += netUnits;
+                    else if (inEpccRadius && !inUtepRadius) epccIsolatedUnits += netUnits;
+                    else {
                         const splitUnits = Math.floor(netUnits / 2);
                         utepIsolatedUnits += splitUnits;
                         epccIsolatedUnits += (netUnits - splitUnits);
@@ -288,16 +353,11 @@
 
                     feature.properties.runtime_net_units = netUnits;
                     feature.properties.runtime_status = "Developable Soft Site";
-
-                    return {
-                        fillColor: '#f59e0b', weight: 1, opacity: 0.8, color: '#d97706', fillOpacity: 0.6
-                    };
+                    return { fillColor: '#f59e0b', weight: 1, opacity: 0.8, color: '#d97706', fillOpacity: 0.6 };
                 } else {
                     feature.properties.runtime_net_units = 0;
                     feature.properties.runtime_status = "Stable Built Zone";
-                    return {
-                        fillColor: '#1e3a8a', weight: 0.5, opacity: 0.4, color: '#2563eb', fillOpacity: 0.15
-                    };
+                    return { fillColor: '#1e3a8a', weight: 0.5, opacity: 0.4, color: '#2563eb', fillOpacity: 0.15 };
                 }
             }
 
@@ -307,30 +367,24 @@
                         const currentLayer = e.target;
                         currentLayer.setStyle({ weight: 2, color: '#ffffff', fillOpacity: 0.8 });
                         const props = feature.properties;
-                        const netUnits = props.runtime_net_units || 0;
-                        const status = props.runtime_status || 'Stable';
                         
                         currentLayer.bindTooltip([
                             "<strong>Zoning District:</strong> " + (props.ZONELABEL || 'Unknown') + "<br/>",
-                            "<strong>Campus Zone:</strong> " + (props.CAMPUS_AFFINITY || 'None') + "<br/>",
-                            "<strong>Status:</strong> " + status + "<br/>",
-                            "<strong>Existing Base FAR:</strong> " + parseFloat(props.EXISTING_FAR || 0).toFixed(2) + "<br/>",
-                            "<strong>Simulated Net Units:</strong> " + netUnits.toLocaleString()
+                            "<strong>Status:</strong> " + (props.runtime_status || 'Stable') + "<br/>",
+                            "<strong>Distance to UTEP:</strong> " + Math.round(props.DIST_UTEP_M || 0) + "m<br/>",
+                            "<strong>Distance to EPCC:</strong> " + Math.round(props.DIST_EPCC_M || 0) + "m<br/>",
+                            "<strong>Simulated Net Units:</strong> " + (props.runtime_net_units || 0).toLocaleString()
                         ].join(""), { className: 'leaflet-tooltip-custom', sticky: true }).openTooltip();
                     },
                     mouseout: (e) => { geojsonLayer.resetStyle(e.target); }
                 });
             }
 
-            geojsonLayer = L.geoJSON(rawGeojsonData, {
-                style: styleFeature,
-                onEachFeature: onEachFeature
-            }).addTo(map);
+            geojsonLayer = L.geoJSON(rawGeojsonData, { style: styleFeature, onEachFeature: onEachFeature }).addTo(map);
 
             kpiUnits.innerText = totalNetUnitsCombined.toLocaleString();
             kpiParcels.innerText = "Net units generated across " + activeSoftSites.toLocaleString() + " active lots.";
 
-            // ADJUST RETAINED TARGET PROGRESS INDICATION BARS
             const utepPct = Math.min(100, (utepIsolatedUnits / TARGETS.UTEP) * 100);
             const epccPct = Math.min(100, (epccIsolatedUnits / TARGETS.EPCC) * 100);
 
@@ -340,13 +394,6 @@
             epccLabel.innerText = epccIsolatedUnits.toLocaleString() + " / " + TARGETS.EPCC.toLocaleString();
             epccBar.style.width = epccPct + "%";
         }
-
-        elStories.addEventListener('input', runSimulation);
-        elFar.addEventListener('input', runSimulation);
-        elSetback.addEventListener('input', runSimulation);
-        elUnitsAcre.addEventListener('input', runSimulation);
-        elCoverage.addEventListener('input', runSimulation);
-        elDeedToggle.addEventListener('change', runSimulation);
 
         window.onload = initMap;
     </script>

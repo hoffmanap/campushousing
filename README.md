@@ -1,6 +1,6 @@
 # El Paso Campus Housing Zone — Legislative Impact Analysis
 
-This repository contains the geospatial pre-processing engine, dataset schemas, and mathematical modeling parameters used to analyze the municipal and physical impacts of upzonint near Higher Learning Institutions. 
+This repository contains the geospatial pre-processing engine, dataset schemas, and mathematical modeling parameters used to analyze the municipal and physical impacts of upzoning near Higher Learning Institutions. 
 
 The end product of this analysis feeds a dynamic, interactive dashboard that models zoning optimization, identifies underutilized parcels, and projects net housing unit additions near major institutions of higher education in El Paso, Texas.
 
